@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpsAgent</title>
+<style>
+:root{color-scheme:light;--bg:#f5f5f2;--surface:#fcfcfb;--raised:#fff;--line:#deddd7;--text:#0b0b0b;--muted:#52514e;--accent:#2a78d6;--good:#008300;--bad:#c62f2e;
+--s0:#2a78d6;--s1:#eb6834;--s2:#1baf7a;--s3:#eda100;--s4:#e87ba4;--s5:#008300;--s6:#6250d6;--s7:#e34948}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#111110;--surface:#1a1a19;--raised:#222220;--line:#383835;--text:#f0efec;--muted:#c3c2b7;--accent:#3987e5;--good:#0ca30c;--bad:#e66767;
+--s0:#3987e5;--s1:#d95926;--s2:#199e70;--s3:#c98500;--s4:#d55181;--s5:#0ca30c;--s6:#9085e9;--s7:#e66767}}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,textarea{font:inherit;color:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.app{display:grid;grid-template-columns:250px minmax(0,1fr) 380px;height:100dvh}
+aside{background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.trace{border-right:0;border-left:1px solid var(--line)}
+.head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);min-height:54px}
+h1,h2,h3{margin:0;line-height:1.25}h1{font-size:16px}h2{font-size:14px}
+.btn{border:1px solid var(--line);background:var(--raised);border-radius:6px;padding:5px 10px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn:disabled{opacity:.55;cursor:default}
+.list{overflow:auto;flex:1;padding:6px}
+.item{display:block;width:100%;text-align:left;background:none;border:0;border-radius:6px;padding:8px}
+.item:hover,.item.on{background:var(--raised)}.item small,.muted{color:var(--muted)}
+.title{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.health{padding:10px 14px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.chat{flex:1;overflow:auto;padding:20px}.inner{max-width:860px;margin:auto}
+.msg{margin:0 0 18px}.q{background:var(--raised);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-weight:600}
+.a{padding:10px 2px}.a p{margin:0 0 8px}.a ul{margin:0 0 8px;padding-left:20px}
+.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;color:var(--muted);font-size:12px}
+.link{background:none;border:0;padding:0;color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;margin:10px 0;min-width:0}
+.card-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px}
+.plot{height:340px}.tablewrap{overflow:auto;max-height:280px}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:4px 8px;border-bottom:1px solid var(--line)}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.composer{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--surface)}
+textarea{flex:1;resize:none;height:44px;border:1px solid var(--line);background:var(--raised);border-radius:6px;padding:10px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.empty{padding:9vh 0}.empty h2{font-size:22px}
+.event{border-bottom:1px solid var(--line)}.event>button{display:grid;grid-template-columns:30px 62px minmax(0,1fr) auto;gap:6px;width:100%;background:none;border:0;padding:7px 12px;text-align:left;font-size:12px}
+.event>button:hover{background:var(--raised)}.err{color:var(--bad);font-weight:600}.ok{color:var(--good)}
+pre{margin:0;padding:8px 12px;background:var(--bg);font-size:11px;overflow:auto;max-height:300px;white-space:pre-wrap;word-break:break-word}
+.menu{display:none}
+@media (max-width:1100px){.app{grid-template-columns:minmax(0,1fr)}aside{position:fixed;z-index:5;top:0;bottom:0;width:min(88vw,360px);display:none}.side{left:0}.trace{right:0}aside.open{display:flex}.menu{display:inline-block}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side">
+    <div class="head"><h1>OpsAgent</h1><button class="btn" id="new">New</button></div>
+    <div class="list" id="sessions"></div>
+    <div class="health" id="health">Checking systems…</div>
+  </aside>
+  <main>
+    <div class="head">
+      <button class="btn menu" data-toggle="side">Sessions</button>
+      <h2 class="title" id="heading">New session</h2>
+      <button class="btn menu" data-toggle="trace">Trace</button>
+    </div>
+    <div class="chat"><div class="inner" id="chat"></div></div>
+    <form class="composer" id="form">
+      <textarea id="input" aria-label="Ask a question" placeholder="Ask about changes, tickets, alerts or incidents"></textarea>
+      <button class="btn primary" id="send">Ask</button>
+    </form>
+  </main>
+  <aside class="trace" id="trace">
+    <div class="head"><h2>Query trace</h2><span class="muted" id="trace-meta"></span></div>
+    <div class="list" id="events" style="padding:0"><p class="muted" style="padding:12px">Select a query to verify its events.</p></div>
+  </aside>
+</div>
+<script src="/vendor/plotly.min.js"></script>
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let sessionId=null,busy=false;
+const api=async(u,o)=>{const r=await fetch(u,o);if(!r.ok)throw new Error(`${r.status} ${await r.text()}`);return r.json()};
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function md(t){const out=[];let list=false;const inline=s=>esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`(.+?)`/g,'<code>$1</code>');
+ for(const l of String(t||'').split('\n')){const b=l.match(/^\s*[-*]\s+(.*)/);if(b){if(!list){out.push('<ul>');list=true}out.push(`<li>${inline(b[1])}</li>`);continue}
+  if(list){out.push('</ul>');list=false}const h=l.match(/^(#{1,3})\s+(.*)/);if(h)out.push(`<h3 style="margin:10px 0 6px">${inline(h[2])}</h3>`);else if(l.trim())out.push(`<p>${inline(l)}</p>`)}
+ if(list)out.push('</ul>');return out.join('')}
+function table(t){const num=t.columns.map((_,i)=>t.rows.every(r=>r[i]==null||typeof r[i]==='number'));
+ return `<div class="tablewrap"><table><thead><tr>${t.columns.map((c,i)=>`<th class="${num[i]?'n':''}">${esc(c)}</th>`).join('')}</tr></thead><tbody>${t.rows.map(r=>`<tr>${r.map((v,i)=>`<td class="${num[i]?'n':''}">${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
+function drawChart(el,c){const text=css('--text'),muted=css('--muted'),grid=css('--line'),surface=css('--surface');
+ const horizontal=c.type==='hbar',line=['line','area'].includes(c.type);
+ const data=c.series.map(s=>{const color=css(`--s${s.slot}`),ht=c.series.length>1?`${esc(s.name)}<br>`:'';
+  if(horizontal){const pairs=s.x.map((x,i)=>[x,s.y[i]]).sort((a,b)=>a[1]-b[1]);return{type:'bar',orientation:'h',name:s.name,y:pairs.map(p=>p[0]),x:pairs.map(p=>p[1]),marker:{color,line:{color:surface,width:2},cornerradius:4},hovertemplate:`${ht}%{y}: %{x:,}<extra></extra>`}}
+  if(line||c.type==='scatter')return{type:'scatter',mode:c.type==='scatter'?'markers':'lines+markers',fill:c.type==='area'?'tozeroy':undefined,name:s.name,x:s.x,y:s.y,line:{color,width:2},marker:{color,size:8,line:{color:surface,width:2}},hovertemplate:`${ht}%{x}: %{y:,}<extra></extra>`};
+  return{type:'bar',name:s.name,x:s.x,y:s.y,marker:{color,line:{color:surface,width:2},cornerradius:4},hovertemplate:`${ht}%{x}: %{y:,}<extra></extra>`}});
+ const axis={gridcolor:grid,zerolinecolor:grid,color:muted,automargin:true,type:'category'},value={gridcolor:grid,zerolinecolor:grid,color:muted,automargin:true,rangemode:'tozero',title:{text:horizontal?c.y_label:c.y_label}};
+ Plotly.newPlot(el,data,{paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:text,family:'system-ui,sans-serif',size:12},margin:{l:8,r:12,t:8,b:8},barmode:c.type==='stacked_bar'?'stack':'group',bargap:.3,showlegend:c.series.length>1,legend:{orientation:'h',y:1.12},hoverlabel:{bgcolor:surface,font:{color:text},bordercolor:grid},xaxis:horizontal?value:{...axis,title:{text:c.x_label}},yaxis:horizontal?axis:value},{displayModeBar:false,responsive:true})}
+function artifact(a){const box=document.createElement('section');box.className='card';const c=a.content;
+ if(a.kind==='chart'){box.innerHTML=`<div class="card-head"><h3>${esc(a.title)}</h3><button class="btn" type="button">Table</button></div><div class="plot"></div><div hidden>${table(c.table)}</div>${c.data_truncated?'<p class="muted">Chart limited to the first 2,000 rows.</p>':''}`;
+  const plot=box.querySelector('.plot'),tbl=box.querySelector('[hidden]');box.querySelector('button').onclick=e=>{const show=tbl.hidden;tbl.hidden=!show;plot.hidden=show;e.target.textContent=show?'Chart':'Table';if(!show)Plotly.Plots.resize(plot)};requestAnimationFrame(()=>drawChart(plot,c))}
+ else box.innerHTML=`<div class="card-head"><h3>${esc(a.title)}</h3><a class="btn" style="text-decoration:none" href="/api/artifacts/${a.id}/download">Download</a></div>${md(c.markdown)}`;
+ return box}
+function queryBlock(q){const el=document.createElement('article');el.className='msg';el.innerHTML=`<div class="q">${esc(q.question)}</div><div class="a"></div><div class="arts"></div><div class="meta"></div>`;$('#chat').append(el);return el}
+function finish(el,r,id){el.querySelector('.a').innerHTML=r.status==='failed'?`<p class="err">Query failed: ${esc(r.error)}</p>`:md(r.answer);
+ const t=(r.prompt_tokens??r.tokens?.prompt??0)+(r.completion_tokens??r.tokens?.completion??0);el.querySelector('.meta').innerHTML=`<span>${esc(r.status)}</span><span>${t.toLocaleString()} tokens</span><button class="link" type="button">View trace</button>`;el.querySelector('.link').onclick=()=>loadTrace(id)}
+function empty(){$('#chat').innerHTML=`<div class="empty"><h2>What do you need to know?</h2><p class="muted">Name a system, or let the agent work it out.</p><div class="chips">${['Find network changes in the last 24 hours','What kind of issues are users facing? Create a report','Chart Zendesk tickets per day for the last 14 days','Show incidents from the past week'].map(x=>`<button class="btn" type="button">${x}</button>`).join('')}</div></div>`;
+ document.querySelectorAll('.chips button').forEach(b=>b.onclick=()=>{$('#input').value=b.textContent;$('#form').requestSubmit()})}
+async function refreshSessions(){const list=await api('/api/sessions');$('#sessions').innerHTML=list.map(s=>`<button class="item ${s.id===sessionId?'on':''}" data-id="${s.id}"><span class="title">${esc(s.title)}</span><small>${s.queries} queries${s.failed?` · ${s.failed} failed`:''}</small></button>`).join('')||'<p class="muted" style="padding:8px">No sessions yet.</p>';document.querySelectorAll('#sessions .item').forEach(b=>b.onclick=()=>openSession(b.dataset.id))}
+async function openSession(id){sessionId=id;const d=await api(`/api/sessions/${id}`);$('#heading').textContent=d.session.title;$('#chat').innerHTML='';d.queries.forEach(q=>{const el=queryBlock(q);finish(el,q,q.id);q.artifacts.forEach(a=>el.querySelector('.arts').append(artifact(a)))});if(!d.queries.length)empty();const last=d.queries.at(-1);if(last)loadTrace(last.id);refreshSessions();$('#side').classList.remove('open')}
+function eventRow(e){const row=document.createElement('div');row.className='event';const bad=e.status!=='ok';row.innerHTML=`<button type="button" aria-expanded="false"><span class="muted">#${e.seq}</span><span>${esc(e.type)}</span><span class="title">${esc(e.name)}</span><span class="${bad?'err':'ok'}">${bad?'✕ error':(e.duration_ms!=null?`${e.duration_ms} ms`:'✓')}</span></button>`;
+ if(e.payload){const p=document.createElement('pre');p.hidden=true;p.textContent=JSON.stringify(e.payload,null,2);row.append(p);row.firstChild.onclick=()=>{p.hidden=!p.hidden;row.firstChild.setAttribute('aria-expanded',!p.hidden)}}return row}
+async function loadTrace(id){const d=await api(`/api/queries/${id}`),box=$('#events');box.innerHTML='';d.events.forEach(e=>box.append(eventRow(e)));const f=d.events.filter(e=>e.status!=='ok').length;$('#trace-meta').textContent=`${d.events.length} events${f?`, ${f} failed`:''}`;$('#trace').classList.add('loaded')}
+async function ask(question){busy=true;$('#send').disabled=true;if(!sessionId)sessionId=(await api('/api/sessions',{method:'POST'})).id;if($('.empty'))$('#chat').innerHTML='';const el=queryBlock({question});const answer=el.querySelector('.a');answer.innerHTML='<p class="muted">Working…</p>';$('#events').innerHTML='';let qid=null;
+ try{const r=await fetch(`/api/sessions/${sessionId}/query`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});if(!r.ok)throw new Error(await r.text());const reader=r.body.pipeThrough(new TextDecoderStream()).getReader();let buf='',done=false;
+  while(!done){const c=await reader.read();if(c.done)break;buf+=c.value;const parts=buf.split('\n\n');buf=parts.pop();for(const part of parts){if(!part.startsWith('data: '))continue;const m=JSON.parse(part.slice(6));if(m.event==='start')qid=m.query_id;if(m.event==='trace'){answer.innerHTML=`<p class="muted">${esc(m.type)}: ${esc(m.name)}</p>`;$('#events').append(eventRow(m))}if(m.event==='artifact')el.querySelector('.arts').append(artifact(m));if(m.event==='done'){finish(el,m,qid);done=true}}}
+  if(!done)finish(el,{status:'failed',error:'Connection closed before the answer arrived'},qid);if(qid)await loadTrace(qid)}catch(e){finish(el,{status:'failed',error:e.message},qid)}
+ busy=false;$('#send').disabled=false;refreshSessions();const s=await api(`/api/sessions/${sessionId}`);$('#heading').textContent=s.session.title}
+$('#form').onsubmit=e=>{e.preventDefault();const q=$('#input').value.trim();if(!q||busy)return;$('#input').value='';ask(q)};
+$('#input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('#form').requestSubmit()}};
+$('#new').onclick=()=>{sessionId=null;$('#heading').textContent='New session';$('#events').innerHTML='<p class="muted" style="padding:12px">Select a query to verify its events.</p>';$('#trace-meta').textContent='';empty();refreshSessions();$('#side').classList.remove('open')};
+document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>$('#'+b.dataset.toggle).classList.toggle('open'));
+api('/api/health').then(h=>$('#health').textContent=`${h.connected} of ${h.total} systems connected`).catch(()=>$('#health').textContent='Backend unavailable');
+empty();refreshSessions();
+</script>
+</body>
+</html>
