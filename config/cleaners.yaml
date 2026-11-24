@@ -1,0 +1,64 @@
+# Per-system cleanup. Each profile turns huge nested JSON into small flat rows.
+# records: dotted path to the list of records.
+# id: unique field used to remove duplicates.
+# fields: output column -> dotted source path. Everything else is dropped.
+# text: columns reduced to plain text and truncated.
+# times: columns normalised to UTC ISO timestamps.
+# pagination: lets the hub fetch every page automatically.
+# A system with no profile uses the generic cleaner.
+
+defaults:
+  max_text_chars: 600
+
+systems:
+  jira:
+    records: issues
+    id: key
+    pagination: {style: offset, offset_arg: start_at, limit_arg: max_results, page_size: 100, total: total}
+    fields:
+      key: key
+      project: fields.project.key
+      type: fields.issuetype.name
+      summary: fields.summary
+      description: fields.description
+      status: fields.status.name
+      priority: fields.priority.name
+      assignee_team: fields.customfield_10010.value
+      service: fields.components.0.name
+      created: fields.created
+      updated: fields.updated
+    text: [summary, description]
+    times: [created, updated]
+
+  zendesk:
+    records: tickets
+    id: id
+    pagination: {style: page, page_arg: page, limit_arg: per_page, page_size: 100, next: next_page}
+    fields:
+      id: id
+      subject: subject
+      description: description
+      category: custom_fields.category
+      priority: priority
+      status: status
+      channel: via.channel
+      satisfaction: satisfaction_rating.score
+      created: created_at
+      updated: updated_at
+    text: [subject, description]
+    times: [created, updated]
+
+  xmatters:
+    records: data
+    id: eventId
+    fields:
+      id: eventId
+      name: name
+      severity: priority
+      status: status
+      service: properties.service
+      responder_group: recipients.0.targetName
+      ack_minutes: metrics.ackMinutes
+      created: created
+    text: [name]
+    times: [created]

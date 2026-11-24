@@ -1,0 +1,74 @@
+# Every MCP server the agent connects to.
+# transport: stdio (command + args) or http (url + optional headers).
+# ${VAR} is read from the environment. ${PYTHON} is the running interpreter.
+# allow: only tools matching these globs can be called, so write tools stay blocked.
+#
+# Real server example:
+#   jira:
+#     transport: http
+#     url: https://mcp.example.internal/jira
+#     headers: {Authorization: "Bearer ${JIRA_MCP_TOKEN}"}
+#     description: ...
+#     allow: ["search_*", "get_*"]
+
+servers:
+  jira:
+    transport: stdio
+    command: ${PYTHON}
+    args: [-m, opsagent.mocks.server, jira]
+    description: Change requests, engineering tickets, incidents and project boards.
+    allow: ["search_*", "get_*", "list_*"]
+  zendesk:
+    transport: stdio
+    command: ${PYTHON}
+    args: [-m, opsagent.mocks.server, zendesk]
+    description: Customer support tickets, complaints and what users are reporting.
+    allow: ["search_*", "get_*", "list_*"]
+  xmatters:
+    transport: stdio
+    command: ${PYTHON}
+    args: [-m, opsagent.mocks.server, xmatters]
+    description: On-call alerts, paging events, escalations and responder acknowledgements.
+    allow: ["search_*", "get_*", "list_*"]
+  servicenow:
+    transport: stdio
+    command: ${PYTHON}
+    args: [-m, opsagent.mocks.server, servicenow]
+    description: ITSM incidents and service requests.
+    allow: ["list_*", "get_*"]
+  pagerduty:
+    transport: stdio
+    command: ${PYTHON}
+    args: [-m, opsagent.mocks.server, pagerduty]
+    description: Service incidents and on-call pages.
+    allow: ["list_*", "get_*"]
+  datadog:
+    transport: stdio
+    command: ${PYTHON}
+    args: [-m, opsagent.mocks.server, datadog]
+    description: Monitor alerts and infrastructure health signals.
+    allow: ["list_*", "get_*"]
+  confluence:
+    transport: stdio
+    command: ${PYTHON}
+    args: [-m, opsagent.mocks.server, confluence]
+    description: Runbooks, postmortems and internal documentation updates.
+    allow: ["list_*", "get_*"]
+  github:
+    transport: stdio
+    command: ${PYTHON}
+    args: [-m, opsagent.mocks.server, github]
+    description: Code deployments, pull requests and releases.
+    allow: ["list_*", "get_*"]
+  slack:
+    transport: stdio
+    command: ${PYTHON}
+    args: [-m, opsagent.mocks.server, slack]
+    description: Incident channel messages and team discussion.
+    allow: ["list_*", "get_*"]
+  statuspage:
+    transport: stdio
+    command: ${PYTHON}
+    args: [-m, opsagent.mocks.server, statuspage]
+    description: Public service status and customer-facing outage notices.
+    allow: ["list_*", "get_*"]
